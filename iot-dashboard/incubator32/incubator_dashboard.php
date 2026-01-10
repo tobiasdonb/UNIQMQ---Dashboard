@@ -204,12 +204,6 @@ $username = $_SESSION['username'];
         const optionsDate = { weekday: 'long', month: 'short', day: 'numeric' };
         dateElement.innerText = new Date().toLocaleDateString('en-US', optionsDate);
 
-        // --- PRESET DATA HEWAN ---
-        const batchPresets = {
-            chicken: { temp: 37.5, hum: 55, infoTemp: "Optimal: 37.2°C - 37.8°C", infoHum: "Optimal: 50% - 60%" },
-            duck: { temp: 37.5, hum: 60, infoTemp: "Optimal: 37.2°C - 37.8°C", infoHum: "Optimal: 55% - 65%" },
-            quail: { temp: 37.7, hum: 50, infoTemp: "Optimal: 37.5°C - 38.0°C", infoHum: "Optimal: 45% - 55%" }
-        };
 
         // Default Variables
         let currentTargetTemp = 37.5;
