@@ -74,7 +74,7 @@ $devices = mysqli_query($koneksi, $sql_fetch);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Device</title>
+    <title>UNIMQ - Dashboard</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -160,6 +160,7 @@ $devices = mysqli_query($koneksi, $sql_fetch);
                         $current_icon = $icon_incubator;
                         $badge_color = 'bg-[#FFF8EC] text-accent-brown border border-accent-brown/20';
                     } elseif (strpos($device['device_type'], 'lamp') !== false) {
+                        $link = 'iot-dashboard/smartlamp32/smartlamp_dashboard.php?device_id=' . $id_val;
                         $current_icon = $icon_lamp;
                         $badge_color = 'bg-blue-50 text-accent-blue border border-accent-blue/20';
                     }
