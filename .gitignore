@@ -1,3 +1,5 @@
 # Ignore all files with spesific format
 *.log
+.agents
 *.env
+node_modules/
