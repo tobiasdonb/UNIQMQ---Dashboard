@@ -33,8 +33,8 @@ CREATE TABLE `device` (
 
 INSERT INTO `device` (`device_id`, `broker_url`, `mq_pass`, `mq_user`, `device_type`, `user_id`, `device_name`, `broker_port`) VALUES
 (14, 'test.mosquitto.org', '', '', 'esp32-inkubator', 11, 'Inkubator Ternak 1', '8080'),
-(19, '000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'cihuyyy', 'esp32-inkubator', 11, 'Inkubator burung', '8884');
-(19, '0000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'itsabirds', 'esp32-inkubator', 11, 'Inkubator burung', '8884');
+(19, '000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'cihuyyy', 'esp32-inkubator', 11, 'Inkubator burung', '8884'),
+(20, '0000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'itsabirds', 'esp32-inkubator', 11, 'Inkubator burung', '8884');
 
 -- Table structure for `user_tokens`
 CREATE TABLE `user_tokens` (
@@ -67,7 +67,7 @@ ALTER TABLE `user`
 
 -- AUTO_INCREMENT for `device`
 ALTER TABLE `device`
-  MODIFY `device_id` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `device_id` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 -- AUTO_INCREMENT for `user_tokens`
 ALTER TABLE `user_tokens`
@@ -80,6 +80,7 @@ ALTER TABLE `device`
 ALTER TABLE `user_tokens`
   ADD CONSTRAINT `user_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE;
 
+-- Table structure for `device_logs`
 CREATE TABLE `device_logs` (
   `log_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `device_id` int(10) NOT NULL,
