@@ -1,74 +1,11 @@
-<?php
-session_start();
-if (!isset($_SESSION['username'])) {
-    header("Location: index.php");
-    exit;
-}
-
-include "config/koneksi.php";
-$username = $_SESSION['username'];
-$user_id = $_SESSION['user_id'];
-
-// Logika ubah password
-if (isset($_POST['change_password'])) {
-    $current_password = $_POST['current_password'];
-    $new_password = $_POST['new_password'];
-    $confirm_password = $_POST['confirm_password'];
-
-    // Ambil password saat ini dari database
-    $stmt = $koneksi->prepare("SELECT password FROM user WHERE user_id = ? LIMIT 1");
-    $stmt->bind_param("s", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result && $result->num_rows === 1) {
-        $data = $result->fetch_assoc();
-        
-        // Verifikasi password lama
-        if (password_verify($current_password, $data['password'])) {
-            if ($new_password === $confirm_password) {
-                // Hash password baru
-                $hashed_new_password = password_hash($new_password, PASSWORD_DEFAULT);
-                
-                // Update password ke database
-                $update_stmt = $koneksi->prepare("UPDATE user SET password = ? WHERE user_id = ?");
-                $update_stmt->bind_param("ss", $hashed_new_password, $user_id);
-                
-                if ($update_stmt->execute()) {
-                    $_SESSION['toast'] = ['type' => 'success', 'message' => 'Password berhasil diubah!'];
-                } else {
-                    $_SESSION['toast'] = ['type' => 'error', 'message' => 'Terjadi kesalahan sistem saat mengubah password.'];
-                }
-                $update_stmt->close();
-            } else {
-                $_SESSION['toast'] = ['type' => 'error', 'message' => 'Konfirmasi password baru tidak cocok.'];
-            }
-        } else {
-            $_SESSION['toast'] = ['type' => 'error', 'message' => 'Password saat ini salah.'];
-        }
-    } else {
-        $_SESSION['toast'] = ['type' => 'error', 'message' => 'User tidak ditemukan.'];
-    }
-    $stmt->close();
-    
-    header("Location: profile.php");
-    exit;
-}
-
-$page_title = 'User Profile - UNIMQ';
-$body_class = 'bg-cream-bg text-dark-text min-h-screen font-sans selection:bg-accent-green selection:text-white pb-20';
-$base_url = '';
-
-include "components/header.php";
-?>
-
-    <nav class="flex justify-between items-center px-6 py-6 max-w-7xl mx-auto">
+<%- include('partials/header') %>
+<nav class="flex justify-between items-center px-6 py-6 max-w-7xl mx-auto">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-accent-green">UNIMQ</h1>
             <p class="text-sm text-muted-text font-medium">Profile Settings</p>
         </div>
         <div class="flex items-center gap-4">
-            <a href="dashboard.php" class="text-gray-600 font-semibold hover:text-black transition-colors text-sm px-4 py-2 bg-gray-100 rounded-lg">Kembali</a>
+            <a href="/dashboard" class="text-gray-600 font-semibold hover:text-black transition-colors text-sm px-4 py-2 bg-gray-100 rounded-lg">Kembali</a>
         </div>
     </nav>
 
@@ -86,8 +23,8 @@ include "components/header.php";
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-bold text-dark-text"><?= htmlspecialchars($username) ?></h3>
-                    <p class="text-sm text-muted-text font-medium uppercase tracking-wider mt-1">User ID: <?= htmlspecialchars($user_id) ?></p>
+                    <h3 class="text-2xl font-bold text-dark-text"><%= username %></h3>
+                    <p class="text-sm text-muted-text font-medium uppercase tracking-wider mt-1">User ID: <%= user_id %></p>
                 </div>
             </div>
 
@@ -164,4 +101,4 @@ include "components/header.php";
             }
         }
     </script>
-<?php include "components/footer.php"; ?>
+<%- include('partials/footer') %>

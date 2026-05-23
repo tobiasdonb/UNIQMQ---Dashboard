@@ -1,58 +1,37 @@
-<?php
-session_start();
+<%- include('../../partials/header') %>
 
-if (!isset($_SESSION['username'])) {
-    header("Location: ../../index.php");
-    exit;
-}
-
-if (!isset($_GET['device_id'])) {
-    echo "<script>alert('Device ID tidak ditemukan!'); window.location='../../dashboard.php';</script>";
-    exit;
-}
-
-include "../../config/koneksi.php"; 
-$username = $_SESSION['username'];
-$device_id = mysqli_real_escape_string($koneksi, $_GET['device_id']);
-
-$sql = "SELECT d.* FROM device d 
-        JOIN user u ON d.user_id = u.user_id 
-        WHERE d.device_id = '$device_id' AND u.user_name = '$username'";
-$result = mysqli_query($koneksi, $sql);
-$device_data = mysqli_fetch_assoc($result);
-
-if (!$device_data) {
-    echo "<script>alert('Akses ditolak!'); window.location='../../dashboard.php';</script>";
-    exit;
-}
-
-$broker_host = $device_data['broker_url']; 
-$mq_user     = $device_data['mq_user'];
-$mq_pass     = $device_data['mq_pass'];
-$broker_port = $device_data['broker_port'];
-
-$topic_sub   = "incubator/" . $device_id . "/data";
-$topic_pub   = "incubator/" . $device_id . "/con";
-?>
-
-<?php
-$page_title = htmlspecialchars($device_data['device_name']) . ' - Control';
-$body_class = 'p-6 md:p-12 min-h-screen flex flex-col font-sans text-gray-800';
-$base_url = '../../';
-ob_start();
-?>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <div id="data-container"
+        data-broker-url="<%= device_data.broker_url %>"
+        data-broker-port="<%= device_data.broker_port %>"
+        data-mq-user="<%= device_data.mq_user %>"
+        data-mq-pass="<%= device_data.mq_pass %>"
+        data-topic-sub="<%= topic_sub %>"
+        data-topic-pub="<%= topic_pub %>"
+        data-is-ssl="<%= (device_data.broker_port == 8883 || device_data.broker_port == 8884) ? 'true' : 'false' %>"
+        data-chart-labels='<%- JSON.stringify(chart_labels) %>'
+        data-chart-temp-avg='<%- JSON.stringify(chart_temp_avg) %>'
+        data-chart-temp-high='<%- JSON.stringify(chart_temp_high) %>'
+        data-chart-temp-low='<%- JSON.stringify(chart_temp_low) %>'
+        data-chart-hum-avg='<%- JSON.stringify(chart_hum_avg) %>'
+        data-chart-hum-high='<%- JSON.stringify(chart_hum_high) %>'
+        data-chart-hum-low='<%- JSON.stringify(chart_hum_low) %>'
+        style="display:none">
+    </div>
 
     <script>
+        const container = document.getElementById('data-container');
         const mqttConfig = {
-            host: "<?= $broker_host ?>",
-            port: <?= $broker_port ?>, 
-            username: "<?= $mq_user ?>", 
-            password: "<?= $mq_pass ?>", 
-            useSSL: <?= ($broker_port == 8883 || $broker_port == 8884) ? 'true' : 'false' ?>,
+            host: container.dataset.brokerUrl,
+            port: parseInt(container.dataset.brokerPort),
+            username: container.dataset.mqUser,
+            password: container.dataset.mqPass,
+            useSSL: container.dataset.isSsl === 'true',
             topics: {
-                subscribe: "<?= $topic_sub ?>",
-                publish: "<?= $topic_pub ?>"
+                subscribe: container.dataset.topicSub,
+                publish: container.dataset.topicPub
             }
         };
 
@@ -66,7 +45,7 @@ ob_start();
     <style>
         .back-btn { position: fixed; top: 12px; left: 12px; z-index: 50; }
         @media (min-width: 640px) { .back-btn { top: 20px; left: 20px; } }
-        .back-btn a { display: flex; align-items: center; gap: 8px; background: #fff; padding: 10px 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.3s; }
+        .back-btn a { display: flex; align-items: center; gap: 8px; background: #fff; padding: 10px 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.3s; text-decoration: none; color: inherit; }
         .back-btn a span { display: none; }
         @media (min-width: 640px) { .back-btn a span { display: inline; } }
 
@@ -112,13 +91,10 @@ ob_start();
             .batch-dropdown-menu { left: auto; right: 0; }
         }
     </style>
-<?php
-$extra_head = ob_get_clean();
-include "../../components/header.php";
-?>
+
 
     <div class="back-btn">
-        <a href="../../dashboard.php">
+        <a href="/dashboard">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             <span class="font-semibold">Back</span>
         </a>
@@ -127,7 +103,7 @@ include "../../components/header.php";
     <div class="max-w-5xl mx-auto w-full mt-10 sm:mt-0">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 sm:mb-12 gap-4 sm:gap-6 border-b border-gray-300 pb-4 sm:pb-8">
             <div>
-                <p class="text-xs sm:text-sm font-semibold tracking-wider text-gray-600 uppercase mb-1"><?= htmlspecialchars($device_data['device_name']) ?></p>
+                <p class="text-xs sm:text-sm font-semibold tracking-wider text-gray-600 uppercase mb-1"><%= device_data.device_name %></p>
                 <h1 id="date-display" class="text-3xl sm:text-4xl md:text-5xl font-bold text-black">Loading...</h1>
                 <p id="status" class="mt-2 text-xs sm:text-sm font-medium text-orange-600">Status: Connecting...</p>
             </div>
@@ -199,6 +175,35 @@ include "../../components/header.php";
                 </div>
             </div>
         </div>
+
+        <div class="flex flex-col gap-6 sm:gap-12 mt-6 sm:mt-12">
+            <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Temperature History</h3>
+                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#ef4444] rounded-full"></span> High</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#386628] rounded-full"></span> Avg</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#3b82f6] rounded-full"></span> Low</div>
+                    </div>
+                </div>
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Humidity History</h3>
+                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#f59e0b] rounded-full"></span> High</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#1E88E5] rounded-full"></span> Avg</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#6366f1] rounded-full"></span> Low</div>
+                    </div>
+                </div>
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="humChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -207,7 +212,124 @@ include "../../components/header.php";
         let currentTargetTemp = 37.5;
         let currentTargetHum = 55;
 
-        // --- MQTT.js CONNECTION ---
+        // --- CHART INTERFACE ---
+        const ctxTemp = document.getElementById('tempChart').getContext('2d');
+        const tempChart = new Chart(ctxTemp, {
+            type: 'line',
+            data: {
+                labels: JSON.parse(container.dataset.chartLabels).map(t => {
+                    const d = new Date(t);
+                    return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+                }),
+                datasets: [
+                    {
+                        label: 'High (°C)',
+                        data: JSON.parse(container.dataset.chartTempHigh),
+                        borderColor: '#ef4444',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Average (°C)',
+                        data: JSON.parse(container.dataset.chartTempAvg),
+                        borderColor: '#386628',
+                        backgroundColor: 'rgba(56, 102, 40, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Low (°C)',
+                        data: JSON.parse(container.dataset.chartTempLow),
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false } 
+                },
+                scales: {
+                    y: { 
+                        grace: 5,
+                        ticks: { font: { size: 10 } } 
+                    },
+                    x: { ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+
+        const ctxHum = document.getElementById('humChart').getContext('2d');
+        const humChart = new Chart(ctxHum, {
+            type: 'line',
+            data: {
+                labels: JSON.parse(container.dataset.chartLabels).map(t => {
+                    const d = new Date(t);
+                    return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+                }),
+                datasets: [
+                    {
+                        label: 'High (%)',
+                        data: JSON.parse(container.dataset.chartHumHigh),
+                        borderColor: '#f59e0b',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Average (%)',
+                        data: JSON.parse(container.dataset.chartHumAvg),
+                        borderColor: '#1E88E5',
+                        backgroundColor: 'rgba(30, 136, 229, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Low (%)',
+                        data: JSON.parse(container.dataset.chartHumLow),
+                        borderColor: '#6366f1',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false } 
+                },
+                scales: {
+                    y: { 
+                        grace: 5,
+                        ticks: { font: { size: 10 } } 
+                    },
+                    x: { ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+        
+        let lastChartUpdate = Date.now();
+
+        // MQTT.js CONNECTION
         const protocol = mqttConfig.useSSL ? 'wss' : 'ws';
         const brokerUrl = `${protocol}://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
         const clientOptions = {
@@ -259,6 +381,38 @@ include "../../components/header.php";
                     currentTargetHum = parseFloat(data.target_hum || data.t_hum);
                     document.getElementById('target-hum').innerText = Math.round(currentTargetHum) + '%';
                 }
+
+                // Append live data to chart every 1 minute
+                if (Date.now() - lastChartUpdate >= 60000 && data.temperature !== undefined && data.humidity !== undefined) {
+                    const timeNow = new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit'});
+                    const liveTemp = parseFloat(data.temperature).toFixed(2);
+                    const liveHum = parseFloat(data.humidity).toFixed(2);
+                    
+                    // Update Temp Chart (Add current live data to all lines for realism)
+                    tempChart.data.labels.push(timeNow);
+                    tempChart.data.datasets[0].data.push(liveTemp); // High
+                    tempChart.data.datasets[1].data.push(liveTemp); // Avg
+                    tempChart.data.datasets[2].data.push(liveTemp); // Low
+                    if(tempChart.data.labels.length > 15) { 
+                        tempChart.data.labels.shift(); 
+                        tempChart.data.datasets.forEach(ds => ds.data.shift());
+                    }
+                    tempChart.update('none');
+
+                    // Update Hum Chart
+                    humChart.data.labels.push(timeNow);
+                    humChart.data.datasets[0].data.push(liveHum); // High
+                    humChart.data.datasets[1].data.push(liveHum); // Avg
+                    humChart.data.datasets[2].data.push(liveHum); // Low
+                    if(humChart.data.labels.length > 15) { 
+                        humChart.data.labels.shift(); 
+                        humChart.data.datasets.forEach(ds => ds.data.shift());
+                    }
+                    humChart.update('none');
+
+                    lastChartUpdate = Date.now();
+                }
+
             } catch (e) { console.warn('Parsing Error:', e); }
         });
 
@@ -326,4 +480,4 @@ include "../../components/header.php";
             }
         });
     </script>
-<?php include "../../components/footer.php"; ?>
+<%- include('../../partials/footer') %>

@@ -1,0 +1,41 @@
+const express = require('express');
+const router = express.Router();
+const AuthController = require('../controllers/AuthController');
+const DeviceController = require('../controllers/DeviceController');
+const { authenticateToken } = require('../middleware/auth');
+const pool = require('../src/config/db');
+
+// Public API
+router.post('/login', AuthController.apiLogin);
+
+// Protected API
+router.get('/devices', authenticateToken, DeviceController.apiGetDevices);
+
+// API: Update Device Configuration
+router.post('/devices/update', authenticateToken, async (req, res) => {
+    const { device_id, device_name, device_type, broker_url, broker_port, mq_user, mq_pass } = req.body;
+    try {
+        const [result] = await pool.query(
+            "UPDATE device SET device_name=?, device_type=?, broker_url=?, broker_port=?, mq_user=?, mq_pass=? WHERE device_id=? AND user_id=?",
+            [device_name, device_type, broker_url, broker_port, mq_user, mq_pass, device_id, req.user.user_id]
+        );
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Device not found' });
+        res.json({ message: 'Device updated' });
+    } catch (e) {
+        res.status(500).json({ error: 'Update failed' });
+    }
+});
+
+// API: Get Logs for Charts
+router.get('/devices/:id/logs', authenticateToken, async (req, res) => {
+    const device_id = req.params.id;
+    try {
+        const [logs] = await pool.query("SELECT data, created_at FROM device_logs WHERE device_id = ? ORDER BY created_at DESC LIMIT 50", [device_id]);
+        const processedLogs = logs.map(row => ({ created_at: row.created_at, data: JSON.parse(row.data) }));
+        res.json(processedLogs);
+    } catch (e) {
+        res.status(500).json({ error: 'Fetch logs failed' });
+    }
+});
+
+module.exports = router;

@@ -1,52 +1,12 @@
-<?php
-ob_start();
-session_start();
-include "config/koneksi.php";
 
-$error = "";
-
-if (isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    // PREPARED STATEMENT
-    $stmt = $koneksi->prepare("SELECT user_id, user_name, password FROM user WHERE user_name = ? LIMIT 1");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result && $result->num_rows === 1) {
-        $data = $result->fetch_assoc();
-
-        if (password_verify($password, $data['password'])) {
-            $_SESSION['user_id'] = $data['user_id'];
-            $_SESSION['username'] = $data['user_name'];
-            
-            header("Location: dashboard.php");
-            exit;
-        } else {
-            $error = "Password salah";
-        }
-    } else {
-        $error = "Username tidak ditemukan";
-    }
-    $stmt->close();
-}
-?>
-<?php
-$page_title = 'Login - Unimon';
-$body_class = 'font-sans min-h-screen flex items-center justify-center p-6';
-$base_url = '';
-include "components/header.php";
-?>
-
-    <div class="w-full max-w-md bg-white rounded-3xl p-10 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-white">
+<%- include('partials/header') %>
+<div class="w-full max-w-md bg-white rounded-3xl p-10 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-white">
         <div class="text-center mb-10">
             <h2 class="text-3xl font-bold text-black mb-2">Welcome Back</h2>
             <p class="text-gray-500 text-sm tracking-wide uppercase font-semibold">UnimonMQ</p>
         </div>
 
-        <form method="post" class="space-y-5">
+        <form action="/login" method="post" class="space-y-5">
             <div>
                 <label class="text-[0.65rem] font-bold uppercase tracking-wider text-gray-600 block mb-2 px-1">Username</label>
                 <input type="text" name="username" placeholder="Enter your username" required
@@ -67,6 +27,13 @@ include "components/header.php";
                 </div>
             </div>
 
+            <div class="flex items-center justify-between px-1">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" name="remember" checked class="w-4 h-4 rounded border-gray-300 text-[#C69C6D] focus:ring-[#C69C6D]">
+                    <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Remember Me</span>
+                </label>
+            </div>
+
             <button type="submit" name="login" 
                 class="w-full bg-[#C69C6D] text-black font-bold py-3.5 rounded-xl shadow-sm hover:bg-[#b08b61] transition duration-300 mt-4">
                 LOGIN
@@ -74,19 +41,19 @@ include "components/header.php";
         </form>
 
         <div class="mt-8 pt-8 border-t border-gray-100">
-            <p class="text-center text-sm text-gray-600 mb-4">Belum memiliki akun?</p>
-            <form action="register.php" method="get">
+            <p class="text-center text-sm text-gray-600 mb-4">Don't have an account?</p>
+            <form action="/register" method="get">
                 <button type="submit" class="w-full border-2 border-black text-black font-bold py-3 rounded-xl hover:bg-black hover:text-white transition duration-300">
-                    DAFTAR SEKARANG
+                    REGISTER
                 </button>
             </form>
         </div>
 
-        <?php if ($error != "") { ?>
+        <% if (error) { %>
             <div class="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl">
-                <p class="text-center text-sm font-bold text-red-600"><?= $error ?></p>
+                <p class="text-center text-sm font-bold text-red-600"><%= error %></p>
             </div>
-        <?php } ?>
+        <% } %>
     </div>
 
     <script>
@@ -103,4 +70,4 @@ include "components/header.php";
             }
         }
     </script>
-<?php include "components/footer.php"; ?>
+<%- include('partials/footer') %>

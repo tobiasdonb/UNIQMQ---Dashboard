@@ -1,62 +1,29 @@
-<?php
-session_start();
-// 1. Cek Login
-if (!isset($_SESSION['username'])) {
-    header("Location: ../../index.php");
-    exit;
-}
+<%- include('../../partials/header') %>
 
-// 2. Cek Parameter ID Device
-if (!isset($_GET['device_id'])) {
-    echo "<script>alert('Device ID tidak ditemukan!'); window.location='../../dashboard.php';</script>";
-    exit;
-}
-
-include "../../config/koneksi.php"; 
-$username = $_SESSION['username'];
-$device_id = mysqli_real_escape_string($koneksi, $_GET['device_id']);
-
-// 3. Ambil Data Device (Validasi kepemilikan)
-$sql = "SELECT d.* FROM device d 
-        JOIN user u ON d.user_id = u.user_id 
-        WHERE d.device_id = '$device_id' AND u.user_name = '$username'";
-$result = mysqli_query($koneksi, $sql);
-$device_data = mysqli_fetch_assoc($result);
-
-if (!$device_data) {
-    echo "<script>alert('Device tidak ditemukan atau Anda tidak memiliki akses!'); window.location='../../dashboard.php';</script>";
-    exit;
-}
-
-// 4. Konfigurasi Broker
-$broker_host = $device_data['broker_url']; 
-$mq_user     = $device_data['mq_user'];
-$mq_pass     = $device_data['mq_pass'];
-$broker_port = $device_data['broker_port'];
-
-// Topik spesifik Smart Lamp
-$topic_sub   = "smartlamp/" . $device_id . "/status";
-$topic_pub   = "smartlamp/" . $device_id . "/control";
-?>
-
-<?php
-$page_title = htmlspecialchars($device_data['device_name']) . ' - Smart Lamp';
-$body_class = 'p-6 sm:p-12 md:p-24 min-h-screen font-sans text-gray-900';
-$base_url = '../../';
-ob_start();
-?>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
+    <div id="data-container"
+        data-broker-url="<%= device_data.broker_url %>"
+        data-broker-port="<%= device_data.broker_port %>"
+        data-mq-user="<%= device_data.mq_user %>"
+        data-mq-pass="<%= device_data.mq_pass %>"
+        data-topic-sub="<%= topic_sub %>"
+        data-topic-pub="<%= topic_pub %>"
+        data-is-ssl="<%= (device_data.broker_port == 8883 || device_data.broker_port == 8884) ? 'true' : 'false' %>"
+        style="display:none">
+    </div>
+
     <script>
+        const container = document.getElementById('data-container');
         const mqttConfig = {
-            host: "<?= $broker_host ?>",
-            port: <?= $broker_port ?>,
-            username: "<?= $mq_user ?>", 
-            password: "<?= $mq_pass ?>", 
-            useSSL: <?= ($broker_port == 8883 || $broker_port == 8884) ? 'true' : 'false' ?>,
+            host: container.dataset.brokerUrl,
+            port: parseInt(container.dataset.brokerPort),
+            username: container.dataset.mqUser,
+            password: container.dataset.mqPass,
+            useSSL: container.dataset.isSsl === 'true',
             topics: {
-                subscribe: { status: "<?= $topic_sub ?>" },
-                publish: { control: "<?= $topic_pub ?>" }
+                subscribe: { status: container.dataset.topicSub },
+                publish: { control: container.dataset.topicPub }
             }
         };
     </script>
@@ -74,13 +41,10 @@ ob_start();
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px; }
         input[type=range]::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background: #1E90FF; cursor: pointer; -webkit-appearance: none; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
     </style>
-<?php
-$extra_head = ob_get_clean();
-include "../../components/header.php";
-?>
+
 
     <div class="back-btn">
-        <a href="../../dashboard.php">
+        <a href="/dashboard">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             <span>Back</span>
         </a>
@@ -261,4 +225,4 @@ include "../../components/header.php";
             }
         }
     </script>
-<?php include "../../components/footer.php"; ?>
+<%- include('../../partials/footer') %>
